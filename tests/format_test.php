@@ -22,6 +22,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+namespace qformat_giftmedia;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -43,8 +44,9 @@ require_once($CFG->dirroot . '/question/engine/tests/helpers.php');
  *
  * @copyright 2017 Jean-Michel Vedrine
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @covers \qformat_giftmedia
  */
-class qformat_giftmedia_test extends question_testcase {
+final class format_test extends \question_testcase {
     public function assert_same_gift($expectedtext, $text) {
         $this->assertEquals(str_replace("\r\n", "\n", $expectedtext),
                 str_replace("\r\n", "\n", $text));
@@ -56,7 +58,7 @@ class qformat_giftmedia_test extends question_testcase {
 ::Q8:: How are you? {}';
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -78,7 +80,7 @@ class qformat_giftmedia_test extends question_testcase {
             ),
         );
 
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_match() {
@@ -93,7 +95,7 @@ class qformat_giftmedia_test extends question_testcase {
 }';
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -155,7 +157,7 @@ class qformat_giftmedia_test extends question_testcase {
 
         // Repeated test for better failure messages.
         $this->assertEquals($expectedq->subquestions, $q->subquestions);
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_multichoice() {
@@ -169,7 +171,7 @@ class qformat_giftmedia_test extends question_testcase {
 }";
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -234,7 +236,7 @@ class qformat_giftmedia_test extends question_testcase {
         // Repeated test for better failure messages.
         $this->assertEquals($expectedq->answer, $q->answer);
         $this->assertEquals($expectedq->feedback, $q->feedback);
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_multichoice_multi() {
@@ -249,7 +251,7 @@ class qformat_giftmedia_test extends question_testcase {
 }";
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -322,7 +324,7 @@ class qformat_giftmedia_test extends question_testcase {
         // Repeated test for better failure messages.
         $this->assertEquals($expectedq->answer, $q->answer);
         $this->assertEquals($expectedq->feedback, $q->feedback);
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_multichoice_multi_tricky() {
@@ -336,7 +338,7 @@ class qformat_giftmedia_test extends question_testcase {
 }";
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -401,7 +403,7 @@ class qformat_giftmedia_test extends question_testcase {
         // Repeated test for better failure messages.
         $this->assertEquals($expectedq->answer, $q->answer);
         $this->assertEquals($expectedq->feedback, $q->feedback);
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_numerical() {
@@ -410,7 +412,7 @@ class qformat_giftmedia_test extends question_testcase {
 ::Q5:: What is a number from 1 to 5? {#3:2~#Completely wrong}";
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -446,7 +448,7 @@ class qformat_giftmedia_test extends question_testcase {
         $this->assertEquals($expectedq->answer, $q->answer);
         $this->assertEquals($expectedq->fraction, $q->fraction);
         $this->assertEquals($expectedq->feedback, $q->feedback);
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_shortanswer() {
@@ -459,7 +461,7 @@ class qformat_giftmedia_test extends question_testcase {
 }";
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -498,7 +500,7 @@ class qformat_giftmedia_test extends question_testcase {
         $this->assertEquals($expectedq->answer, $q->answer);
         $this->assertEquals($expectedq->fraction, $q->fraction);
         $this->assertEquals($expectedq->feedback, $q->feedback);
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_shortanswer_with_general_feedback() {
@@ -512,7 +514,7 @@ class qformat_giftmedia_test extends question_testcase {
 }";
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -554,7 +556,7 @@ class qformat_giftmedia_test extends question_testcase {
         $this->assertEquals($expectedq->answer, $q->answer);
         $this->assertEquals($expectedq->fraction, $q->fraction);
         $this->assertEquals($expectedq->feedback, $q->feedback);
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_truefalse() {
@@ -564,7 +566,7 @@ class qformat_giftmedia_test extends question_testcase {
 FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -588,7 +590,7 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
             ),
         );
 
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_truefalse_true_answer1() {
@@ -596,7 +598,7 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
 ::2-08 TSL::TSL is blablabla.{T}";
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -623,7 +625,7 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
             ),
         );
 
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_truefalse_true_answer2() {
@@ -631,7 +633,7 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
 ::2-08 TSL::TSL is blablabla.{TRUE}";
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -657,7 +659,7 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
             ),
         );
 
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_backslash() {
@@ -669,7 +671,7 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
 ::double backslash:: A \\\\ B \\\\\\\\ C{}';
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -691,7 +693,7 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
             ),
         );
 
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 
     public function test_import_pre_content() {
@@ -707,7 +709,7 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
 {}';
         $lines = preg_split('/[\\n\\r]/', str_replace("\r\n", "\n", $gift));
 
-        $importer = new qformat_giftmedia();
+        $importer = new \qformat_giftmedia();
         $q = $importer->readquestion($lines);
 
         $expectedq = (object) array(
@@ -736,6 +738,6 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
             ),
         );
 
-        $this->assert(new question_check_specified_fields_expectation($expectedq), $q);
+        $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
     }
 }

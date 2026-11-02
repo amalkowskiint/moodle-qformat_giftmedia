@@ -148,6 +148,44 @@ class qformat_giftmedia extends qformat_gift {
     }
 
     /**
+     * Validate a media path referenced in the imported text.
+     *
+     * Only regular files located inside the directory where the archive
+     * was extracted are accepted. Absolute paths, stream wrappers, NUL bytes
+     * and ".." segments are rejected, and the resolved real path must stay
+     * inside the extraction directory (this also defeats symlinks).
+     *
+     * @param string $path path relative to the extraction directory, as found in the text
+     * @return string|null normalised relative path (with / separators) or null if not allowed
+     */
+    protected function get_safe_media_path($path) {
+        if ($this->tempdir === '' || $path === '' || strpos($path, "\0") !== false) {
+            return null;
+        }
+        $path = str_replace('\\', '/', $path);
+        if ($path[0] === '/' || preg_match('#^[a-z]:#i', $path) || strpos($path, '://') !== false) {
+            return null;
+        }
+        foreach (explode('/', $path) as $segment) {
+            if ($segment === '..') {
+                return null;
+            }
+        }
+        $base = realpath($this->tempdir);
+        if ($base === false) {
+            return null;
+        }
+        $real = realpath($base . '/' . $path);
+        if ($real === false || strpos($real, $base . DIRECTORY_SEPARATOR) !== 0) {
+            return null;
+        }
+        if (!is_file($real) || !is_readable($real)) {
+            return null;
+        }
+        return $path;
+    }
+
+    /**
      * Given an HTML text with references to media files,
      * store all medias in a draft filearea,
      * and return an array with all urls in text recoded,
@@ -161,14 +199,19 @@ class qformat_giftmedia extends qformat_gift {
         preg_match_all('|"@@PLUGINFILE@@/([^"]*)"|i', $text, $out); // Find all pluginfile refs.
         $filepaths = array();
         foreach ($out[1] as $path) {
-            $fullpath = $this->tempdir . '/' . $path;
-            if (is_readable($fullpath) && !in_array($path, $filepaths)) {
-                $dirpath = dirname($path);
-                $filename = basename($path);
-                $newfilename = $this->store_file_for_text_field($data, $this->tempdir, $dirpath, $filename);
-                $text = preg_replace("|@@PLUGINFILE@@/$path|", "@@PLUGINFILE@@/" . $newfilename, $text);
-                $filepaths[] = $path;
+            if (in_array($path, $filepaths)) {
+                continue;
             }
+            $safepath = $this->get_safe_media_path($path);
+            if ($safepath === null) {
+                // Reference outside the extracted archive, missing or invalid: ignore it.
+                continue;
+            }
+            $dirpath = dirname($safepath);
+            $filename = basename($safepath);
+            $newfilename = $this->store_file_for_text_field($data, $this->tempdir, $dirpath, $filename);
+            $text = str_replace('"@@PLUGINFILE@@/' . $path . '"', '"@@PLUGINFILE@@/' . $newfilename . '"', $text);
+            $filepaths[] = $path;
         }
         $data['text'] = $text;
         $data['format'] = FORMAT_HTML;
@@ -211,7 +254,8 @@ class qformat_giftmedia extends qformat_gift {
      * @return mixed contents array or false on failure
      */
     public function readdata($filename) {
-        $uniquecode = time();
+        // Use an unpredictable, per-import directory so that concurrent imports never share it.
+        $uniquecode = time() . '_' . random_string(20);
         $this->tempdir = make_temp_directory('giftmedia/' . $uniquecode);
         if (is_readable($filename)) {
             if (!copy($filename, $this->tempdir . '/gift.zip')) {
@@ -233,12 +277,12 @@ class qformat_giftmedia extends qformat_gift {
                 if ($filenames) {
                     return file($this->tempdir . '/' . $filenames[0]);
                 } else {
-                    $this->error(get_string('nogiftfile', 'giftmedia'));
-                    fulldelete($this->temp_dir);
+                    $this->error(get_string('nogiftfile', 'qformat_giftmedia'));
+                    fulldelete($this->tempdir);
                 }
             } else {
                 $this->error(get_string('cannotunzip', 'question'));
-                fulldelete($this->temp_dir);
+                fulldelete($this->tempdir);
             }
         } else {
             $this->error(get_string('cannotreaduploadfile', 'error'));

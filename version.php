@@ -25,9 +25,9 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'qformat_giftmedia';
-$plugin->version   = 2022071700;
+$plugin->version   = 2026110200;
 $plugin->requires  = 2013042600;
-$plugin->release   = '1.05 for Moodle 2.7 ... 4.0';
+$plugin->release   = '1.06 for Moodle 2.7 ... 4.0';
 $plugin->maturity  = MATURITY_STABLE;
 $plugin->dependencies = array(
     'qformat_gift' => 2012112900

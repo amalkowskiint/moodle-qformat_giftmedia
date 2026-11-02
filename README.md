@@ -1,8 +1,5 @@
 WARNING :
-I am now retired and I stopped all Moodle related activities.
-This repository is here just for history and this work is not maintained any more.
-Feel free to fork it and modify it to suit your needs or improve compatibility with recent Moodle versions.
-Additionaly you can consider contacting the Moodle team and become the new maintainer of this plugin. Thanks
+A little support for my projects.
 
 moodle-qformat_giftmedia
 ========================
@@ -64,6 +61,6 @@ Currently the text file containing the questions must be at the root level of th
 and it must have a .txt extension to be correctly found and parsed.
 
 ## NOTE
-Don't forget the GIFT syntax ! the `=` character is a special character for GIFT so each `=` in your HTML 
-has to be written as `\=` (see examples 2 and 3 above). I made this mistake numerous time while writting 
+Don't forget the GIFT syntax ! the `=` character is a special character for GIFT so each `=` in your HTML
+has to be written as `\=` (see examples 2 and 3 above). I made this mistake numerous time while writting
 GIFT with medias questions, so you have been warned.

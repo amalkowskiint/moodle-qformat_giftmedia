@@ -210,7 +210,14 @@ class qformat_giftmedia extends qformat_gift {
             $dirpath = dirname($safepath);
             $filename = basename($safepath);
             $newfilename = $this->store_file_for_text_field($data, $this->tempdir, $dirpath, $filename);
-            $text = str_replace('"@@PLUGINFILE@@/' . $path . '"', '"@@PLUGINFILE@@/' . $newfilename . '"', $text);
+            // The marker is matched case-insensitively (as when searching), the path exactly.
+            $text = preg_replace_callback(
+                '|"(?i:@@PLUGINFILE@@)/' . preg_quote($path, '|') . '"|',
+                function () use ($newfilename) {
+                    return '"@@PLUGINFILE@@/' . $newfilename . '"';
+                },
+                $text
+            );
             $filepaths[] = $path;
         }
         $data['text'] = $text;

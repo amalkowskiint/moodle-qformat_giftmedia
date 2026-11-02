@@ -46,8 +46,11 @@ final class media_path_test extends \advanced_testcase {
         $this->basedir = make_request_directory();
         $tempdir = $this->basedir . '/import';
         mkdir($tempdir . '/img', 0777, true);
+        mkdir($tempdir . '/img2', 0777, true);
         file_put_contents($tempdir . '/img/a.png', 'PNGDATA');
         file_put_contents($tempdir . '/img/a+b(1).png', 'PNGDATA2');
+        file_put_contents($tempdir . '/img2/a.png', 'OTHERPNG');
+        file_put_contents($tempdir . '/root.png', 'ROOTPNG');
         file_put_contents($this->basedir . '/secret.php', '<?php $CFG->dbpass = "s3cr3t";');
 
         $this->importer = new \qformat_giftmedia();
@@ -136,5 +139,84 @@ final class media_path_test extends \advanced_testcase {
         $text = '<img src="@@PLUGINFILE@@/' . $path . '">';
         $data = $this->importer->text_field($text);
         $this->assertSame([], $this->get_draft_filenames($data));
+    }
+
+    /**
+     * A media file at the root of the archive keeps its name.
+     */
+    public function test_media_at_archive_root(): void {
+        $data = $this->importer->text_field('<img src="@@PLUGINFILE@@/root.png">');
+        $this->assertEquals('<img src="@@PLUGINFILE@@/root.png">', $data['text']);
+        $this->assertEquals(['root.png'], $this->get_draft_filenames($data));
+    }
+
+    /**
+     * A file referenced twice is stored once and both references are rewritten.
+     */
+    public function test_same_file_referenced_twice(): void {
+        $data = $this->importer->text_field('<img src="@@PLUGINFILE@@/img/a.png"> and <img src="@@PLUGINFILE@@/img/a.png">');
+        $this->assertEquals('<img src="@@PLUGINFILE@@/img__a.png"> and <img src="@@PLUGINFILE@@/img__a.png">', $data['text']);
+        $this->assertEquals(['img__a.png'], $this->get_draft_filenames($data));
+    }
+
+    /**
+     * Files with the same name in different folders do not overwrite each other,
+     * and all the files of one text share the same draft itemid.
+     */
+    public function test_same_filename_in_different_folders(): void {
+        global $USER;
+        $data = $this->importer->text_field('<img src="@@PLUGINFILE@@/img/a.png"><img src="@@PLUGINFILE@@/img2/a.png">');
+        $this->assertEquals('<img src="@@PLUGINFILE@@/img__a.png"><img src="@@PLUGINFILE@@/img2__a.png">', $data['text']);
+        $this->assertEqualsCanonicalizing(['img__a.png', 'img2__a.png'], $this->get_draft_filenames($data));
+
+        $fs = get_file_storage();
+        $usercontextid = \context_user::instance($USER->id)->id;
+        $first = $fs->get_file($usercontextid, 'user', 'draft', $data['itemid'], '/', 'img__a.png');
+        $second = $fs->get_file($usercontextid, 'user', 'draft', $data['itemid'], '/', 'img2__a.png');
+        $this->assertEquals('PNGDATA', $first->get_content());
+        $this->assertEquals('OTHERPNG', $second->get_content());
+    }
+
+    /**
+     * The @@PLUGINFILE@@ marker is recognised whatever its case, and the reference rewritten.
+     */
+    public function test_marker_is_case_insensitive(): void {
+        $data = $this->importer->text_field('<img src="@@pluginfile@@/img/a.png">');
+        $this->assertEquals('<img src="@@PLUGINFILE@@/img__a.png">', $data['text']);
+        $this->assertEquals(['img__a.png'], $this->get_draft_filenames($data));
+    }
+
+    /**
+     * A text without any media reference gets no draft itemid.
+     */
+    public function test_text_without_media(): void {
+        $data = $this->importer->text_field('<p>No media here</p>');
+        $this->assertEquals('<p>No media here</p>', $data['text']);
+        $this->assertArrayNotHasKey('itemid', $data);
+    }
+
+    /**
+     * Readquestion keeps the draft itemids of the question text and general feedback when they contain media.
+     */
+    public function test_readquestion_sets_itemids_for_media(): void {
+        $gift = '::Q:: [html]Look <img src\\="@@PLUGINFILE@@/img/a.png">'
+            . '{=yes ~no ####<img src\\="@@PLUGINFILE@@/img2/a.png">}';
+        $q = $this->importer->readquestion([$gift]);
+
+        $this->assertNotEmpty($q->questiontextitemid);
+        $this->assertNotEmpty($q->generalfeedbackitemid);
+        $this->assertEquals(['img__a.png'], $this->get_draft_filenames(['itemid' => $q->questiontextitemid]));
+        $this->assertEquals(['img2__a.png'], $this->get_draft_filenames(['itemid' => $q->generalfeedbackitemid]));
+        $this->assertStringContainsString('"@@PLUGINFILE@@/img__a.png"', $q->questiontext);
+        $this->assertStringContainsString('"@@PLUGINFILE@@/img2__a.png"', $q->generalfeedback);
+    }
+
+    /**
+     * Readquestion does not set draft itemids when there is no media.
+     */
+    public function test_readquestion_without_media_has_no_itemids(): void {
+        $q = $this->importer->readquestion(['::Q:: Plain question{=yes ~no ####general feedback}']);
+        $this->assertFalse(property_exists($q, 'questiontextitemid'));
+        $this->assertFalse(property_exists($q, 'generalfeedbackitemid'));
     }
 }

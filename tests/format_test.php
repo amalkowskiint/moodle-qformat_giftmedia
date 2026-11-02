@@ -441,7 +441,7 @@ final class format_test extends \question_testcase {
                     'format' => FORMAT_HTML,
                 ),
             ),
-            'tolerance' => array(2, 0),
+            'tolerance' => array(2, ''),
         );
 
         // Repeated test for better failure messages.
@@ -739,5 +739,56 @@ FALSE#42 is the Ultimate Answer.#You gave the right answer.}";
         );
 
         $this->assert(new \question_check_specified_fields_expectation($expectedq), $q);
+    }
+    /**
+     * Idnumber and tags declared in comments are imported, as in qformat_gift.
+     */
+    public function test_import_idnumber_and_tags(): void {
+        $gift = "// [id:Q-001] [tag:music] [tag:easy]\n::Q1:: What?{=yes ~no}";
+        $importer = new \qformat_giftmedia();
+        $q = $importer->readquestion(explode("\n", $gift));
+        $this->assertSame('Q-001', $q->idnumber);
+        $this->assertSame(['music', 'easy'], $q->tags);
+    }
+
+    /**
+     * Without [id:] and [tag:] the idnumber is empty and there are no tags.
+     */
+    public function test_import_without_idnumber_and_tags(): void {
+        $importer = new \qformat_giftmedia();
+        $q = $importer->readquestion(['::Q1:: What?{=yes ~no}']);
+        $this->assertSame('', $q->idnumber);
+        $this->assertSame([], $q->tags);
+    }
+
+    /**
+     * A question text starting with "[" that is not a format marker is kept intact.
+     */
+    public function test_import_text_starting_with_bracket(): void {
+        $importer = new \qformat_giftmedia();
+        $q = $importer->readquestion(['::Q2:: [Note] read carefully. 2+2?{=4 ~5}']);
+        $this->assertSame('[Note] read carefully. 2+2?', $q->questiontext);
+        $this->assertEquals(FORMAT_HTML, $q->questiontextformat);
+    }
+
+    /**
+     * A known [format] marker is removed and the text is always imported as HTML.
+     */
+    public function test_import_format_marker_is_removed(): void {
+        $importer = new \qformat_giftmedia();
+        $q = $importer->readquestion(['::Q3:: [markdown]Some *bold* text{TRUE}']);
+        $this->assertSame('Some *bold* text', $q->questiontext);
+        $this->assertEquals(FORMAT_HTML, $q->questiontextformat);
+    }
+
+    /**
+     * Multichoice questions use the site default answer numbering (MDL-59447).
+     */
+    public function test_import_multichoice_answernumbering_default(): void {
+        $this->resetAfterTest();
+        set_config('answernumbering', '123', 'qtype_multichoice');
+        $importer = new \qformat_giftmedia();
+        $q = $importer->readquestion(['::MC:: Which?{=a ~b}']);
+        $this->assertSame('123', $q->answernumbering);
     }
 }

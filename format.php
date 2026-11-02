@@ -236,10 +236,11 @@ class qformat_giftmedia extends qformat_gift {
      */
     protected function parse_text_with_format($text, $defaultformat = FORMAT_MOODLE) {
         // Parameter defaultformat is ignored we set format to be html in all cases.
-
+        // A leading [format] marker is removed, but only when it is a known format name,
+        // so that texts like "[Note] ..." are kept intact (same rule as qformat_gift).
         if (strpos($text, '[') === 0) {
             $formatend = strpos($text, ']');
-            if ($formatend) {
+            if ($formatend && $this->format_name_to_const(substr($text, 1, $formatend - 1)) != -1) {
                 $text = substr($text, $formatend + 1);
             }
         }
@@ -291,23 +292,34 @@ class qformat_giftmedia extends qformat_gift {
         return false;
     }
 
+    /**
+     * Parse one GIFT question.
+     *
+     * Copy of qformat_gift::readquestion() from Moodle 4.5 (supports [id:] and [tag:]
+     * in comments and the multichoice answernumbering default), extended to keep the
+     * draft itemids of the question text and general feedback so that media files
+     * referenced there are saved with the question.
+     *
+     * @param array $lines lines of the question in GIFT format
+     * @return stdClass|false question object or false if the text is empty/invalid
+     */
     public function readquestion($lines) {
         // Given an array of lines known to define a question in this format, this function
         // converts it into a question object suitable for processing and insertion into Moodle.
 
         $question = $this->defaultquestion();
-        $comment = null;
         // Define replaced by simple assignment, stop redefine notices.
         $giftanswerweightregex = '/^%\-*([0-9]{1,2})\.?([0-9]*)%/';
 
-        // Remove commented lines and implode.
+        // Separate comments and implode.
+        $comments = '';
         foreach ($lines as $key => $line) {
             $line = trim($line);
             if (substr($line, 0, 2) == '//') {
+                $comments .= $line . "\n";
                 $lines[$key] = ' ';
             }
         }
-
         $text = trim(implode("\n", $lines));
 
         if ($text == '') {
@@ -338,7 +350,7 @@ class qformat_giftmedia extends qformat_gift {
             } else {
                 $questionname = substr($text, 0, $namefinish);
                 $question->name = $this->clean_question_name($this->escapedchar_post($questionname));
-                $text = trim(substr($text, $namefinish + 2)); // Remove name from text.
+                $text = trim(substr($text, $namefinish+2)); // Remove name from text.
             }
         } else {
             $question->name = false;
@@ -408,6 +420,9 @@ class qformat_giftmedia extends qformat_gift {
         // Determine question type.
         $question->qtype = null;
 
+        // Extract any idnumber and tags from the comments.
+        list($question->idnumber, $question->tags) = $this->extract_idnumber_and_tags_from_comment($comments);
+
         // Give plugins first try.
         // Plugins must promise not to intercept standard qtypes
         // MDL-12346, this could be called from lesson mod which has its own base class =(.
@@ -429,7 +444,7 @@ class qformat_giftmedia extends qformat_gift {
             // Only Multiplechoice questions contain tilde ~.
             $question->qtype = 'multichoice';
 
-        } else if (strpos($answertext, '=') !== false
+        } else if (strpos($answertext, '=')  !== false
                 && strpos($answertext, '->') !== false) {
             // Only Matching contains both = and ->.
             $question->qtype = 'match';
@@ -477,6 +492,10 @@ class qformat_giftmedia extends qformat_gift {
                 return $question;
 
             case 'multichoice':
+                // "Temporary" solution to enable choice of answernumbering on GIFT import
+                // by respecting default set for multichoice questions (MDL-59447)
+                $question->answernumbering = get_config('qtype_multichoice', 'answernumbering');
+
                 if (strpos($answertext, "=") === false) {
                     $question->single = 0; // Multiple answers are enabled if no single answer is 100% correct.
                 } else {
@@ -513,8 +532,8 @@ class qformat_giftmedia extends qformat_gift {
                     } else {     // Default, i.e., wrong anwer.
                         $answerweight = 0;
                     }
-                    list($question->answer[$key], $question->feedback[$key])
-                            = $this->commentparser($answer, $question->questiontextformat);
+                    list($question->answer[$key], $question->feedback[$key]) =
+                            $this->commentparser($answer, $question->questiontextformat);
                     $question->fraction[$key] = $answerweight;
                 }  // End foreach answer.
 
@@ -552,8 +571,8 @@ class qformat_giftmedia extends qformat_gift {
                 return $question;
 
             case 'truefalse':
-                list($answer, $wrongfeedback, $rightfeedback)
-                        = $this->split_truefalse_comment($answertext, $question->questiontextformat);
+                list($answer, $wrongfeedback, $rightfeedback) =
+                        $this->split_truefalse_comment($answertext, $question->questiontextformat);
 
                 if ($answer['text'] == "T" || $answer['text'] == "TRUE") {
                     $question->correctanswer = 1;
@@ -649,11 +668,11 @@ class qformat_giftmedia extends qformat_gift {
                         $marker = strpos($answer, "..");
                         $max = trim(substr($answer, $marker + 2));
                         $min = trim(substr($answer, 0, $marker));
-                        $ans = ($max + $min) / 2;
+                        $ans = ($max + $min)/2;
                         $tol = $max - $ans;
                     } else if (strpos($answer, ':') > 0) { // Standard [answer]:[errormargin] format.
                         $marker = strpos($answer, ':');
-                        $tol = trim(substr($answer, $marker + 1));
+                        $tol = trim(substr($answer, $marker+1));
                         $ans = trim(substr($answer, 0, $marker));
                     } else { // Only one valid answer (zero errormargin).
                         $tol = 0;
